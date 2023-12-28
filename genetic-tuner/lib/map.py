@@ -1,54 +1,37 @@
 import random
 import csv
 import os
-"""
-Map is a list of float values that randomly walk around the center point (0)
-There is one point for each timestep in the simulation
-"""
+
 class Map:
     def __init__(self, config):
-        filePath = os.path.join(config['data_directory'], config['map_filename'])
-        if config['new_map']:
-            self.createNew(filePath, config['max_timesteps'], config['line_smoothness'])
+        file_path = os.path.join(config.data_directory, config.map_filename)
+        if config.new_map:
+            self.create_new(file_path, config.max_timesteps, config.line_smoothness)
         else:
-            self.load(filePath)
+            self.load(file_path)
 
-    """
-    Creates a map based on a line smoothness. The smoother the line, the less jagged it will become
-    Smoothness varies between [0 and 1] with 0 being the smoothest
-    """
-    def createNew(self, filePath, maxTimesteps, lineSmoothness):
+    def create_new(self, file_path, max_timesteps, line_smoothness):
         random.seed()
-        map = []
+        map_values = [0]
 
-        current_map_value = 0
+        with open(file_path, 'w', newline='') as csvfile:
+            csv_writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            for time in range(1, max_timesteps):
+                if random.random() < line_smoothness:
+                    new_value = map_values[-1] + (random.random() - 0.5) / 1000
+                else:
+                    new_value = map_values[-1]
+                map_values.append(new_value)
+                csv_writer.writerow([new_value])
 
-        csvWriter = csv.writer(open(filePath, 'wb'), delimiter=',',
-                                quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        self.map = map_values
 
-        for time in range(maxTimesteps):
-            # the smaller lineSmoothness, the more smooth the line is
-            if random.random() < lineSmoothness:
-                map.append(current_map_value + (random.random() - .5)/1000)
-            else:
-                map.append(current_map_value)
-            current_map_value = map[time]
-            csvWriter.writerow([current_map_value])
+    def load(self, file_path):
+        with open(file_path, 'r') as csvfile:
+            csv_reader = csv.reader(csvfile)
+            map_values = [float(row[0]) for row in csv_reader]
 
-        self.map = map
-
-    """
-    Loads the local file map.csv into a line.
-    """
-    def load(self, filePath):
-        list_map = list(csv.reader(open(filePath, "rb")))
-        map = []
-        for time in range(len(list_map)):
-            map.append(float(list_map[time]))
-
-        self.map = map
+        self.map = map_values
 
     def get(self, index):
         return self.map[index]
-
-
